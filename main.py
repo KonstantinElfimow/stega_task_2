@@ -15,9 +15,8 @@ class Generator:
         self._first_index = 39
         # подразумевает под собой n-58
         self._second_index = 0
-        # инициализируем буфер через rand (для упрощения)
-        seed = abs(key)
-        self._buffer = [(i * i) % seed for i in range(seed, seed + 58)]
+        # инициализируем буфер
+        self._buffer = [i for i in range(abs(key), abs(key) + 58)]
 
     # Находим следующий {Xi}
     def next(self) -> int:
@@ -60,7 +59,6 @@ class KutterMethod:
         height, width, depth = image.shape[0], image.shape[1], image.shape[2]
 
         message_bits = KutterMethod._str_to_bits(message)
-        # message_bits = message_to_bits(message)
         if len(message_bits) > height * width:
             raise ValueError('Размер сообщения превышает размер контейнера!')
 
@@ -68,19 +66,23 @@ class KutterMethod:
         keys = []
         generator = Generator(base=height * width, key=key_generator)
         for bit in message_bits:
+
             coordinate = generator.next()
             while coordinate in keys:
                 coordinate = generator.next()
+            keys.append(coordinate)
+
             i, j = divmod(coordinate, width)
-            keys.append(tuple([i, j]))
             pixel = image[i, j]
+
             lam = 2
             L = 0.299 * pixel[0] + 0.587 * pixel[1] + 0.114 * pixel[2]
             if bit == 0:
                 pixel[2] = np.uint8(min(255, pixel[2] + lam * L))
             elif bit == 1:
                 pixel[2] = np.uint8(max(0, pixel[2] - lam * L))
-        # print(sorted(generator._buffer))
+        # print(sorted(keys))
+        # print(len(keys) - len(set(keys)))
 
         self._occupancy = len(keys)
         Image.fromarray(image).save(self._full_image_path, 'PNG')
@@ -98,13 +100,13 @@ class KutterMethod:
             coordinate = generator.next()
             while coordinate in keys:
                 coordinate = generator.next()
-            i, j = divmod(coordinate, width)
-            keys.append(tuple([i, j]))
-        # print(sorted(generator._buffer))
+            keys.append(coordinate)
+        # print(sorted(keys))
+        # print(len(keys) - len(set(keys)))
 
         message_bits = []
         for coordinate in keys:
-            i, j = coordinate
+            i, j = divmod(coordinate, width)
             sigma = 1
             summary = 0
             for n in range(1, sigma + 1):
