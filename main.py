@@ -159,7 +159,7 @@ def main():
     t = KutterMethod(old_image, new_image)
     t.encode(message, KEY)
     m = t.decode(KEY)
-    print(m)
+    print('Ваше сообщение:\n{}'.format(m))
 
     metrics(old_image, new_image)
 
