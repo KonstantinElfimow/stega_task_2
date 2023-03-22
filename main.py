@@ -61,7 +61,7 @@ class KutterMethod:
         message_bits = KutterMethod._str_to_bits(message)
         if len(message_bits) > height * width:
             raise ValueError('Размер сообщения превышает размер контейнера!')
-
+        # print(message_bits)
         # использованные пиксели
         keys = []
         generator = Generator(base=height * width, key=key_generator)
@@ -112,18 +112,18 @@ class KutterMethod:
             for n in range(1, sigma + 1):
                 if 0 <= i - n < height and 0 <= j < width:
                     summary += image[i - n, j, 2]
-                elif 0 <= i + n < height and 0 <= j < width:
+                if 0 <= i + n < height and 0 <= j < width:
                     summary += image[i + n, j, 2]
-                elif 0 <= i < height and 0 <= j - n < width:
+                if 0 <= i < height and 0 <= j - n < width:
                     summary += image[i, j - n, 2]
-                elif 0 <= i < height and 0 <= j + n < width:
+                if 0 <= i < height and 0 <= j + n < width:
                     summary += image[i, j + n, 2]
 
             if image[i, j, 2] > (summary / (4 * sigma)):
-                message_bits.append(1)
-            else:
                 message_bits.append(0)
-
+            else:
+                message_bits.append(1)
+        # print(message_bits)
         message = KutterMethod._bits_to_str(message_bits)
         return message
 
