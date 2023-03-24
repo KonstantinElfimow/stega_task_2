@@ -2,7 +2,25 @@ from PIL import Image
 import numpy as np
 from dotenv import load_dotenv
 import os
+import pandas as pd
+import matplotlib.pyplot as plt
 
+import warnings
+warnings.filterwarnings(action='once')
+
+large = 22
+med = 16
+small = 12
+params = {'axes.titlesize': large,
+          'legend.fontsize': med,
+          'figure.figsize': (16, 10),
+          'axes.labelsize': med,
+          'axes.titlesize': med,
+          'xtick.labelsize': med,
+          'ytick.labelsize': med,
+          'figure.titlesize': large}
+plt.rcParams.update(params)
+plt.style.use('seaborn-whitegrid')
 
 encoding: str = 'utf-8'
 
@@ -10,7 +28,7 @@ encoding: str = 'utf-8'
 class Generator:
     def __init__(self, base: int, key: int):
         # основание (m > 0)
-        self._base = base
+        self.base = base
         # подразумевает под собой n-19
         self._first_index = 39
         # подразумевает под собой n-58
@@ -38,18 +56,27 @@ class Generator:
 
 
 class KutterMethod:
-    @staticmethod
-    def _str_to_bits(message: str) -> list:
-        return list(map(int, ''.join(['{0:08b}'.format(num) for num in list(message.encode(encoding))])))
+    def __init__(self, old_image_path: str, new_image_path: str):
+        self._empty_image_path: str = old_image_path
+        self._full_image_path: str = new_image_path
+        self._lam: float = 1
+        self._sigma: int = 1
+        self._occupancy: int = 0
 
     @staticmethod
-    def _bits_to_str(bits: list) -> str:
-        return ''.join(chr(int(''.join(map(str, bits[i: i + 8])), 2)) for i in range(0, len(bits), 8))
+    def str_to_bits(message: str) -> list:
+        result = []
+        for num in list(message.encode(encoding=encoding)):
+            result.extend([(num >> x) & 1 for x in range(7, -1, -1)])
+        return result
 
-    def __init__(self, old_image_path: str, new_image_path: str) -> None:
-        self._empty_image_path = old_image_path
-        self._full_image_path = new_image_path
-        self._occupancy = 0
+    @staticmethod
+    def bits_to_str(bits: list) -> str:
+        chars = []
+        for b in range(len(bits) // 8):
+            byte = bits[b * 8:(b + 1) * 8]
+            chars.append(chr(int(''.join([str(bit) for bit in byte]), 2)))
+        return ''.join(chars)
 
     def encode(self, message: str, key_generator: int):
         img = Image.open(self._empty_image_path).convert('RGB')
@@ -58,10 +85,9 @@ class KutterMethod:
 
         height, width, depth = image.shape[0], image.shape[1], image.shape[2]
 
-        message_bits = KutterMethod._str_to_bits(message)
+        message_bits = KutterMethod.str_to_bits(message)
         if len(message_bits) > height * width:
             raise ValueError('Размер сообщения превышает размер контейнера!')
-        # print(message_bits)
         # использованные пиксели
         keys = []
         generator = Generator(base=height * width, key=key_generator)
@@ -75,14 +101,12 @@ class KutterMethod:
             i, j = divmod(coordinate, width)
             pixel = image[i, j]
 
-            lam = 2
+            lam = self.lam
             L = 0.299 * pixel[0] + 0.587 * pixel[1] + 0.114 * pixel[2]
             if bit == 0:
                 pixel[2] = np.uint8(min(255, pixel[2] + lam * L))
             elif bit == 1:
                 pixel[2] = np.uint8(max(0, pixel[2] - lam * L))
-        # print(sorted(keys))
-        # print(len(keys) - len(set(keys)))
 
         self._occupancy = len(keys)
         Image.fromarray(image).save(self._full_image_path, 'PNG')
@@ -101,13 +125,11 @@ class KutterMethod:
             while coordinate in keys:
                 coordinate = generator.next()
             keys.append(coordinate)
-        # print(sorted(keys))
-        # print(len(keys) - len(set(keys)))
 
         message_bits = []
         for coordinate in keys:
             i, j = divmod(coordinate, width)
-            sigma = 1
+            sigma = self._sigma
             summary = 0
             for n in range(1, sigma + 1):
                 if 0 <= i - n < height and 0 <= j < width:
@@ -123,9 +145,34 @@ class KutterMethod:
                 message_bits.append(0)
             else:
                 message_bits.append(1)
-        # print(message_bits)
-        message = KutterMethod._bits_to_str(message_bits)
-        return message
+        decoded_message = KutterMethod.bits_to_str(message_bits)
+        return decoded_message
+
+    @property
+    def sigma(self) -> int:
+        return self._sigma
+
+    @sigma.setter
+    def sigma(self, value: int) -> None:
+        if isinstance(value, int):
+            if value <= 0:
+                raise ValueError('sigma > 0!')
+            self._sigma = value
+
+    @property
+    def lam(self) -> float:
+        return self._lam
+
+    @lam.setter
+    def lam(self, value: float) -> None:
+        if isinstance(value, float):
+            if value < 1E-14:
+                raise ValueError('lambda > 0!')
+            self._lam = value
+
+    @property
+    def occupancy(self) -> int:
+        return self._occupancy
 
 
 def metrics(empty_image: str, full_image: str) -> None:
@@ -140,28 +187,61 @@ def metrics(empty_image: str, full_image: str) -> None:
     max_d = np.max(np.abs(empty.astype(int) - full.astype(int)))
     print('Максимальное абсолютное отклонение:\n{}'.format(max_d))
 
-    SNR_res = np.sum((empty * empty)) / np.sum((empty - full) * (empty - full))
+    SNR_res = np.sum(empty * empty) / np.sum((empty - full) ** 2)
     print('Отношение сигнал-шум:\n{}'.format(SNR_res))
 
     H, W = empty.shape[0], empty.shape[1]
-    MSE = (1 / (W * H)) * (np.sum((empty - full) * (empty - full)))
-    print('Среднее квадратичное отклонение:\n{}'.format(MSE))
+    MSE = np.sum((empty - full) ** 2) / (W * H)
+    print('Среднее квадратичное отклонение:\n{}\n'.format(MSE))
+
+
+def dependence(key: int, old_image: str, new_image: str, message: str):
+    # Готовим данные
+    d = dict()
+
+    message_bits = np.array(KutterMethod.str_to_bits(message))
+    for lam in (0.5, 1, 1.5, 2, 2.5, 3):
+        kutter = KutterMethod(old_image, new_image)
+        kutter.lam = lam
+        kutter.encode(message, key)
+        for sigma in (1, 2, 3):
+            kutter.sigma = sigma
+            decoded_message = kutter.decode(key)
+            decoded_message_bits = np.array(KutterMethod.str_to_bits(decoded_message))
+
+            d.setdefault('lambda', []).append(lam)
+            d.setdefault('sigma', []).append(sigma)
+            d.setdefault('e_probability', []).append(
+                np.mean(np.abs(message_bits - decoded_message_bits[:message_bits.shape[0]])) * 100)
+
+    df = np.round(pd.DataFrame(d), decimals=5)
+    df.to_csv('log.csv', sep='\t', encoding='utf-8')
+    print('Таблица:')
+    print(df)
+    print('Корреляция:')
+    print(np.round(df.corr(), decimals=5))
+
+    df.groupby('lambda')['e_probability'].mean().plot(grid=True, ylim=0)
+    plt.show()
 
 
 def main():
     load_dotenv('.env')
-    KEY: int = int(os.getenv('KEY'))
+    key: int = int(os.getenv('KEY'))
 
     old_image = 'input/old_image.png'
     new_image = 'output/new_image.png'
-    message = 'Its the secret'
+
+    with open('message.txt', mode='r', encoding=encoding) as file:
+        message = file.read()
 
     t = KutterMethod(old_image, new_image)
-    t.encode(message, KEY)
-    m = t.decode(KEY)
-    print('Ваше сообщение:\n{}'.format(m))
+    t.encode(message, key)
+    decoded_message = t.decode(key)
+    print('Ваше сообщение:\n{}'.format(decoded_message))
 
     metrics(old_image, new_image)
+    dependence(key, old_image, new_image, message)
 
 
 if __name__ == '__main__':
