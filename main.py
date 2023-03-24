@@ -78,7 +78,7 @@ class KutterMethod:
             chars.append(chr(int(''.join([str(bit) for bit in byte]), 2)))
         return ''.join(chars)
 
-    def encode(self, message: str, key_generator: int):
+    def embed(self, message: str, key_generator: int):
         img = Image.open(self._empty_image_path).convert('RGB')
         image = np.asarray(img, dtype='uint8')
         img.close()
@@ -111,7 +111,7 @@ class KutterMethod:
         self._occupancy = len(keys)
         Image.fromarray(image).save(self._full_image_path, 'PNG')
 
-    def decode(self, key_generator: int) -> str:
+    def recover(self, key_generator: int) -> str:
         img = Image.open(self._full_image_path).convert('RGB')
         image = np.asarray(img, dtype='uint8')
         img.close()
@@ -203,10 +203,10 @@ def dependence(key: int, old_image: str, new_image: str, message: str):
     for lam in (0.5, 1, 1.5, 2, 2.5, 3):
         kutter = KutterMethod(old_image, new_image)
         kutter.lam = lam
-        kutter.encode(message, key)
+        kutter.embed(message, key)
         for sigma in (1, 2, 3):
             kutter.sigma = sigma
-            decoded_message = kutter.decode(key)
+            decoded_message = kutter.recover(key)
             decoded_message_bits = np.array(KutterMethod.str_to_bits(decoded_message))
 
             d.setdefault('lambda', []).append(lam)
@@ -236,12 +236,12 @@ def main():
         message = file.read()
 
     t = KutterMethod(old_image, new_image)
-    t.encode(message, key)
-    decoded_message = t.decode(key)
+    t.embed(message, key)
+    decoded_message = t.recover(key)
     print('Ваше сообщение:\n{}'.format(decoded_message))
 
     metrics(old_image, new_image)
-    dependence(key, old_image, new_image, message)
+    dependence(key, old_image, 'output/image.png', message)
 
 
 if __name__ == '__main__':
