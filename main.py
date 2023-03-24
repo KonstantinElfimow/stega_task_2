@@ -38,7 +38,7 @@ class Generator:
 
     # Находим следующий {Xi}
     def next(self) -> int:
-        value = (self._buffer[self._second_index] + self._buffer[self._first_index]) % self._base
+        value = (self._buffer[self._second_index] + self._buffer[self._first_index]) % self.base
         del self._buffer[self._second_index]
         self._buffer.append(value)
         return value
@@ -129,7 +129,7 @@ class KutterMethod:
         message_bits = []
         for coordinate in keys:
             i, j = divmod(coordinate, width)
-            sigma = self._sigma
+            sigma = self.sigma
             summary = 0
             for n in range(1, sigma + 1):
                 if 0 <= i - n < height and 0 <= j < width:
