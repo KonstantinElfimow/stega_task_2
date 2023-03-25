@@ -228,12 +228,15 @@ def dependence(key: int, old_image: str, new_image: str, message: str):
 
     df = np.round(pd.DataFrame(d), decimals=2)
     df.to_csv('log.csv', sep='\t', encoding=encoding)
+
     print('Таблица:')
     print(df)
     print('Корреляция:')
     print(np.round(df.corr(), decimals=2))
 
     df.groupby('lambda')['e_probability'].mean().plot(kind='bar', grid=True, ylim=0)
+    plt.show()
+    df.groupby('sigma')['e_probability'].mean().plot(kind='bar', grid=True, ylim=0)
     plt.show()
 
 
