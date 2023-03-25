@@ -83,7 +83,7 @@ class KutterMethod:
         image = np.asarray(img, dtype='uint8')
         img.close()
 
-        height, width, depth = image.shape[0], image.shape[1], image.shape[2]
+        height, width = image.shape[0], image.shape[1]
 
         message_bits = KutterMethod.str_to_bits(message)
         if len(message_bits) > height * width:
@@ -116,7 +116,7 @@ class KutterMethod:
         image = np.asarray(img, dtype='uint8')
         img.close()
 
-        height, width, depth = image.shape[0], image.shape[1], image.shape[2]
+        height, width = image.shape[0], image.shape[1]
 
         keys = []
         generator = Generator(base=height * width, key=key_generator)
@@ -192,15 +192,16 @@ def metrics(empty_image: str, full_image: str) -> None:
 
     H, W = empty.shape[0], empty.shape[1]
     MSE = np.sum((empty - full) ** 2) / (W * H)
-    print('Среднее квадратичное отклонение:\n{}\n'.format(MSE))
+    print('Среднее квадратичное отклонение:\n{}'.format(MSE))
 
-    sigma = np.sum((empty - np.mean(empty)) * (full - np.mean(full))) / (H * W)
+    # Универсальный индекс качества (УИК)
     # С помощью данной метрики оцениваются
     # коррелированность, изменение динамического диапазона, а также изменение
     # среднего значения одного изображения относительно другого.
     # -1 <= UQI <= 1
     # минимальному искажению изображения соответствуют
     # значения UQI ~ 1
+    sigma = np.sum((empty - np.mean(empty)) * (full - np.mean(full))) / (H * W)
     UQI = (4 * sigma * np.mean(empty) * np.mean(full)) / \
           ((np.var(empty) ** 2 + np.var(full) ** 2) * (np.mean(empty) ** 2 + np.mean(full) ** 2))
     print(f'Универсальный индекс качества (УИК):\n{UQI}\n')
@@ -217,16 +218,16 @@ def dependence(key: int, old_image: str, new_image: str, message: str):
         kutter.embed(message, key)
         for sigma in (1, 2, 3):
             kutter.sigma = sigma
-            decoded_message = kutter.recover(key)
-            decoded_message_bits = np.array(KutterMethod.str_to_bits(decoded_message))
+            recovered_message = kutter.recover(key)
+            recovered_message_bits = np.array(KutterMethod.str_to_bits(recovered_message))
 
             d.setdefault('lambda', []).append(lam)
             d.setdefault('sigma', []).append(sigma)
             d.setdefault('e_probability', []).append(
-                np.mean(np.abs(message_bits - decoded_message_bits[:message_bits.shape[0]])) * 100)
+                np.mean(np.abs(message_bits - recovered_message_bits[:message_bits.shape[0]])) * 100)
 
-    df = np.round(pd.DataFrame(d), decimals=5)
-    df.to_csv('log.csv', sep='\t', encoding='utf-8')
+    df = np.round(pd.DataFrame(d), decimals=2)
+    df.to_csv('log.csv', sep='\t', encoding=encoding)
     print('Таблица:')
     print(df)
     print('Корреляция:')
@@ -248,8 +249,8 @@ def main():
 
     kutter = KutterMethod(old_image, new_image)
     kutter.embed(message, key)
-    decoded_message = kutter.recover(key)
-    print('Ваше сообщение:\n{}'.format(decoded_message))
+    recovered_message = kutter.recover(key)
+    print('Ваше сообщение:\n{}'.format(recovered_message))
 
     metrics(old_image, new_image)
     dependence(key, old_image, 'output/image.png', message)
