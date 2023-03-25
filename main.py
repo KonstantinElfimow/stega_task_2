@@ -187,8 +187,8 @@ def metrics(empty_image: str, full_image: str) -> None:
     max_d = np.max(np.abs(empty.astype(int) - full.astype(int)))
     print('Максимальное абсолютное отклонение:\n{}'.format(max_d))
 
-    SNR_res = np.sum(empty * empty) / np.sum((empty - full) ** 2)
-    print('Отношение сигнал-шум:\n{}'.format(SNR_res))
+    SNR = np.sum(empty * empty) / np.sum((empty - full) ** 2)
+    print('Отношение сигнал-шум:\n{}'.format(SNR))
 
     H, W = empty.shape[0], empty.shape[1]
     MSE = np.sum((empty - full) ** 2) / (W * H)
