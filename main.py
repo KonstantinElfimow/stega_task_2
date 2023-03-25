@@ -219,7 +219,7 @@ def dependence(key: int, old_image: str, new_image: str, message: str):
     print('Таблица:')
     print(df)
     print('Корреляция:')
-    print(np.round(df.corr(), decimals=5))
+    print(np.round(df.corr(), decimals=2))
 
     df.groupby('lambda')['e_probability'].mean().plot(grid=True, ylim=0)
     plt.show()
