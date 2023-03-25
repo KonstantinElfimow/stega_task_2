@@ -194,6 +194,17 @@ def metrics(empty_image: str, full_image: str) -> None:
     MSE = np.sum((empty - full) ** 2) / (W * H)
     print('Среднее квадратичное отклонение:\n{}\n'.format(MSE))
 
+    sigma = np.sum((empty - np.mean(empty)) * (full - np.mean(full))) / (H * W)
+    # С помощью данной метрики оцениваются
+    # коррелированность, изменение динамического диапазона, а также изменение
+    # среднего значения одного изображения относительно другого.
+    # -1 <= UQI <= 1
+    # минимальному искажению изображения соответствуют
+    # значения UQI ~ 1
+    UQI = (4 * sigma * np.mean(empty) * np.mean(full)) / \
+          ((np.var(empty) ** 2 + np.var(full) ** 2) * (np.mean(empty) ** 2 + np.mean(full) ** 2))
+    print(f'Универсальный индекс качества (УИК):\n{UQI}\n')
+
 
 def dependence(key: int, old_image: str, new_image: str, message: str):
     # Готовим данные
@@ -221,7 +232,7 @@ def dependence(key: int, old_image: str, new_image: str, message: str):
     print('Корреляция:')
     print(np.round(df.corr(), decimals=2))
 
-    df.groupby('lambda')['e_probability'].mean().plot(grid=True, ylim=0)
+    df.groupby('lambda')['e_probability'].mean().plot(kind='bar', grid=True, ylim=0)
     plt.show()
 
 
@@ -235,9 +246,9 @@ def main():
     with open('message.txt', mode='r', encoding=encoding) as file:
         message = file.read()
 
-    t = KutterMethod(old_image, new_image)
-    t.embed(message, key)
-    decoded_message = t.recover(key)
+    kutter = KutterMethod(old_image, new_image)
+    kutter.embed(message, key)
+    decoded_message = kutter.recover(key)
     print('Ваше сообщение:\n{}'.format(decoded_message))
 
     metrics(old_image, new_image)
