@@ -103,9 +103,9 @@ class KutterMethod:
 
             lam = self.lam
             L = 0.299 * pixel[0] + 0.587 * pixel[1] + 0.114 * pixel[2]
-            if bit == 0:
+            if bit == 1:
                 pixel[2] = np.uint8(min(255, pixel[2] + lam * L))
-            elif bit == 1:
+            elif bit == 0:
                 pixel[2] = np.uint8(max(0, pixel[2] - lam * L))
 
         self._occupancy = len(keys)
@@ -142,9 +142,9 @@ class KutterMethod:
                     summary += image[i, j + n, 2]
 
             if image[i, j, 2] > (summary / (4 * sigma)):
-                message_bits.append(0)
-            else:
                 message_bits.append(1)
+            else:
+                message_bits.append(0)
         decoded_message = KutterMethod.bits_to_str(message_bits)
         return decoded_message
 
