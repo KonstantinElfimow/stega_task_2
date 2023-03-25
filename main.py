@@ -108,7 +108,7 @@ class KutterMethod:
             elif bit == 0:
                 pixel[2] = np.uint8(max(0, pixel[2] - lam * L))
 
-        self._occupancy = len(keys)
+        self._occupancy = len(message_bits)
         Image.fromarray(image).save(self._full_image_path, 'PNG')
 
     def recover(self, key_generator: int) -> str:
@@ -120,7 +120,7 @@ class KutterMethod:
 
         keys = []
         generator = Generator(base=height * width, key=key_generator)
-        while len(keys) < self._occupancy:
+        while len(keys) < self.occupancy:
             coordinate = generator.next()
             while coordinate in keys:
                 coordinate = generator.next()
