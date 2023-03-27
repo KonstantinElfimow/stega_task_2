@@ -211,7 +211,7 @@ def dependence(key: int, old_image: str, new_image: str, message: str):
     # Готовим данные
     d = dict()
 
-    message_bits = np.array(KutterMethod.str_to_bits(message))
+    message_bits = np.asarray(KutterMethod.str_to_bits(message))
     for lam in (0.5, 1, 1.5, 2, 2.5, 3):
         kutter = KutterMethod(old_image, new_image)
         kutter.lam = lam
@@ -219,7 +219,7 @@ def dependence(key: int, old_image: str, new_image: str, message: str):
         for sigma in (1, 2, 3):
             kutter.sigma = sigma
             recovered_message = kutter.recover(key)
-            recovered_message_bits = np.array(KutterMethod.str_to_bits(recovered_message))
+            recovered_message_bits = np.asarray(KutterMethod.str_to_bits(recovered_message))
 
             d.setdefault('lambda', []).append(lam)
             d.setdefault('sigma', []).append(sigma)
