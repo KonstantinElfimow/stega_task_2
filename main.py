@@ -57,11 +57,11 @@ class Generator:
 
 class KutterMethod:
     def __init__(self, old_image_path: str, new_image_path: str):
-        self._empty_image_path: str = old_image_path
-        self._full_image_path: str = new_image_path
-        self._lam: float = 1
-        self._sigma: int = 1
-        self._occupancy: int = 0
+        self.__empty_image_path: str = old_image_path
+        self.__full_image_path: str = new_image_path
+        self.__lam: float = 1
+        self.__sigma: int = 1
+        self.__occupancy: int = 0
 
     @staticmethod
     def str_to_bits(message: str) -> list:
@@ -79,7 +79,7 @@ class KutterMethod:
         return ''.join(chars)
 
     def embed(self, message: str, key_generator: int):
-        img = Image.open(self._empty_image_path).convert('RGB')
+        img = Image.open(self.__empty_image_path).convert('RGB')
         image = np.asarray(img, dtype='uint8')
         img.close()
 
@@ -108,11 +108,11 @@ class KutterMethod:
             elif bit == 0:
                 pixel[2] = np.uint8(max(0, pixel[2] - lam * L))
 
-        self._occupancy = len(message_bits)
-        Image.fromarray(image).save(self._full_image_path, 'PNG')
+        self.__occupancy = len(message_bits)
+        Image.fromarray(image).save(self.__full_image_path, 'PNG')
 
     def recover(self, key_generator: int) -> str:
-        img = Image.open(self._full_image_path).convert('RGB')
+        img = Image.open(self.__full_image_path).convert('RGB')
         image = np.asarray(img, dtype='uint8')
         img.close()
 
@@ -145,34 +145,34 @@ class KutterMethod:
                 message_bits.append(1)
             else:
                 message_bits.append(0)
-        decoded_message = KutterMethod.bits_to_str(message_bits)
-        return decoded_message
+        recovered_message = KutterMethod.bits_to_str(message_bits)
+        return recovered_message
 
     @property
     def sigma(self) -> int:
-        return self._sigma
+        return self.__sigma
 
     @sigma.setter
     def sigma(self, value: int) -> None:
         if isinstance(value, int):
             if value <= 0:
                 raise ValueError('sigma > 0!')
-            self._sigma = value
+            self.__sigma = value
 
     @property
     def lam(self) -> float:
-        return self._lam
+        return self.__lam
 
     @lam.setter
     def lam(self, value: float) -> None:
         if isinstance(value, float):
             if value < 1E-14:
                 raise ValueError('lambda > 0!')
-            self._lam = value
+            self.__lam = value
 
     @property
     def occupancy(self) -> int:
-        return self._occupancy
+        return self.__occupancy
 
 
 def metrics(empty_image: str, full_image: str) -> None:
