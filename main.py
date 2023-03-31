@@ -166,7 +166,7 @@ class KutterMethod:
     @lam.setter
     def lam(self, value: float) -> None:
         if isinstance(value, float):
-            if value < 1E-14:
+            if abs(value) < 1E-14:
                 raise ValueError('lambda > 0!')
             self.__lam = value
 
